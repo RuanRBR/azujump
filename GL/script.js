@@ -1,35 +1,89 @@
 const canvas = document.getElementById('jogo2D');
 const ctx = canvas.getContext('2d');
 const gravidade = 1;
-let gameOver = false; // Estado do jogo
+let gameOver = false;
+let pontuacao = 0;
 
-// Criar imagens
+
 const imgPersonagem = new Image();
 imgPersonagem.src = 'assets/personagem.png';
 
 const imgObstaculo = new Image();
 imgObstaculo.src = 'assets/obstaculo.png';
 
-// Objeto do personagem
-const personagem = {
-    x: 100,
-    y: canvas.height - 50,
-    largura: 50,
-    altura: 50,
-    velocidadey: 0,
-    pulando: false
-};
+const imgMoeda = new Image();
+imgMoeda.src = "https://media.tenor.com/4xy70tz40KoAAAAj/osaka-headpat.gif";
 
-// Objeto do obstáculo
-const obstaculo = {
-    x: canvas.width - 50,
-    y: canvas.height - 100,
-    largura: 50,
-    altura: 100,
-    velocidadex: 5
-};
 
-// Pulo
+class Personagem {
+    constructor() {
+        this.x = 100;
+        this.y = canvas.height - 50;
+        this.largura = 50;
+        this.altura = 50;
+        this.velocidadey = 0;
+        this.pulando = false;
+    }
+
+    desenhar() {
+        ctx.drawImage(imgPersonagem, this.x, this.y, this.largura, this.altura);
+    }
+
+    atualizar() {
+        if (this.pulando) {
+            this.velocidadey -= gravidade;
+            this.y -= this.velocidadey;
+            if (this.y >= canvas.height - 50) {
+                this.velocidadey = 0;
+                this.pulando = false;
+                this.y = canvas.height - 50;
+            }
+        }
+    }
+
+    verificarColisao(obstaculos) {
+        for (const obstaculo of obstaculos) {
+            if (
+                this.x < obstaculo.x + obstaculo.largura &&
+                this.x + this.largura > obstaculo.x &&
+                this.y < obstaculo.y + obstaculo.altura &&
+                this.y + this.altura > obstaculo.y
+            ) {
+                gameOver = true;
+            }
+        }
+    }
+}
+
+
+class Obstaculo {
+    constructor(x) {
+        this.x = x;
+        this.largura = 50;
+        this.altura = Math.random() * 50 + 50;
+        this.y = canvas.height - this.altura;
+        this.velocidadex = 5;
+    }
+
+    desenhar() {
+        ctx.drawImage(imgObstaculo, this.x, this.y, this.largura, this.altura);
+    }
+
+    atualizar() {
+        this.x -= this.velocidadex;
+        if (this.x <= 0 - this.largura) { 
+            this.x = canvas.width + Math.random() * 200;
+            this.altura = Math.random() * 50 + 100;
+            this.y = canvas.height - this.altura;
+        }
+    }
+}
+
+
+const personagem = new Personagem();
+const obstaculos = [new Obstaculo(canvas.width), new Obstaculo(canvas.width + 300)];
+
+
 document.addEventListener('keypress', (e) => {
     if (e.code === 'Space' && !personagem.pulando && !gameOver) {
         personagem.velocidadey = 20;
@@ -40,54 +94,7 @@ document.addEventListener('keypress', (e) => {
     }
 });
 
-// Função para desenhar o personagem
-function desenharPersonagem() {
-    ctx.drawImage(imgPersonagem, personagem.x, personagem.y, personagem.largura, personagem.altura);
-}
 
-// Função para atualizar a posição do personagem
-function atualizarPersonagem() {
-    if (personagem.pulando) {
-        personagem.velocidadey -= gravidade;
-        personagem.y -= personagem.velocidadey;
-        if (personagem.y >= canvas.height - 50) {
-            personagem.velocidadey = 0;
-            personagem.pulando = false;
-            personagem.y = canvas.height - 50;
-        }
-    }
-}
-
-// Função para desenhar o obstáculo
-function desenharObstaculo() {
-    ctx.drawImage(imgObstaculo, obstaculo.x, obstaculo.y, obstaculo.largura, obstaculo.altura);
-}
-
-// Função para atualizar a posição do obstáculo
-function atualizarObstaculo() {
-    obstaculo.x -= obstaculo.velocidadex;
-    if (obstaculo.x <= 0 - obstaculo.largura) { 
-        obstaculo.x = canvas.width;
-        obstaculo.velocidadex += 0.2;
-        let nova_altura = (Math.random() * 50) + 100;
-        obstaculo.altura = nova_altura;
-        obstaculo.y = canvas.height - nova_altura;
-    }
-}
-
-// Função para verificar colisão
-function verificarColisao() {
-    if (
-        personagem.x < obstaculo.x + obstaculo.largura &&
-        personagem.x + personagem.largura > obstaculo.x &&
-        personagem.y < obstaculo.y + obstaculo.altura &&
-        personagem.y + personagem.altura > obstaculo.y
-    ) {
-        gameOver = true;
-    }
-}
-
-// Função para exibir a tela de Game Over
 function mostrarGameOver() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -99,37 +106,54 @@ function mostrarGameOver() {
     ctx.fillText("Enter para Sair", canvas.width / 2, canvas.height / 2 + 20);
 }
 
-// Reiniciar o jogo
+
 function reiniciarJogo() {
     gameOver = false;
+    pontuacao = 0;
     personagem.y = canvas.height - 50;
     personagem.velocidadey = 0;
-    obstaculo.x = canvas.width - 50;
-    obstaculo.velocidadex = 5;
-    loop(); // Reinicia o loop
+    obstaculos.forEach((obstaculo, i) => {
+        obstaculo.x = canvas.width + i * 300;
+        obstaculo.velocidadex = 5;
+    });
+    loop();
 }
 
-// Loop do jogo
+
+function mostrarPontuacao() {
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.fillText(pontuacao, 50, 30);
+    ctx.drawImage(imgMoeda, 10, 10, 30, 30);
+}
+
+
 function loop() {
     if (gameOver) {
         mostrarGameOver();
-        return; // Para a execução do loop
+        return;
     }
-    
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    desenharPersonagem();
-    atualizarPersonagem();
-    desenharObstaculo();
-    atualizarObstaculo();
-    verificarColisao();
+
+    personagem.desenhar();
+    personagem.atualizar();
+
+    obstaculos.forEach(obstaculo => {
+        obstaculo.desenhar();
+        obstaculo.atualizar();
+    });
+
+    personagem.verificarColisao(obstaculos);
+    
+    mostrarPontuacao();
+
+    pontuacao++;
+
     requestAnimationFrame(loop);
 }
 
-// Espera as imagens carregarem antes de iniciar o jogo
-let imagensCarregadas = 0;
-imgPersonagem.onload = imgObstaculo.onload = () => {
-    imagensCarregadas++;
-    if (imagensCarregadas === 2) {
-        loop();
-    }
+
+imgPersonagem.onload = imgObstaculo.onload = imgMoeda.onload = () => {
+    loop();
 };
